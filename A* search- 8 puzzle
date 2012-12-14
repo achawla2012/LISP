@@ -1,3 +1,7 @@
+; Amardeep singh
+; CS211 Artificial Intelligence
+
+
 (defvar *goal*)            ;; *goal* is a goal-state to acquire 
 (defvar *openlist*)  	   ;; *openlist* is list of nodes which has been visited
 (defvar *closelist*)	   ;; *closelist* is list of nodes which has been visisted
