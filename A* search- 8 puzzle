@@ -1,0 +1,294 @@
+(defvar *goal*)            ;; *goal* is a goal-state to acquire 
+(defvar *openlist*)  	   ;; *openlist* is list of nodes which has been visited
+(defvar *closelist*)	   ;; *closelist* is list of nodes which has been visisted
+						   ;;  and expanded
+(defvar *mov*)             ;; *mov* maintains depth of goal state from start state
+(defvar *current*)		   ;; *current* is a node which gets expanded	
+(defvar *index*)		   ;; *Index* is index of *current* node in openlist
+
+
+;; I have assumed that
+;; both openlist and closelist maintain lists of format 
+;; <f, g, h, (states of 8 puzzle in form of list)> :  Total 12 elements in a list.
+;; Eg. (22 22 0 1 2 3 4 5 6 7 8 E) 
+;; first element  - fvalue: 22
+;; second element - gvalue: 22
+;; third element  - hvalue: 0
+;; Remaining 1-E represensts current state.
+
+(defun eqstate (first second)			 ;; Function returns true, if two states in
+										 ;;	argument are equal else it returns false.
+       	(setf i 0)
+        (setf failure 't)
+        (dolist ( x first) ;; Compares element at positon (i) in both list (state)
+		(if (not (eq x (elt second i))) (setf failure nil))   
+                (setf i (+ 1 i))) failure)
+
+(defun opencheck (node)					;;find *index* of current node from openlist                              
+	(setf temp1 nil)
+	(setf *index* 0)
+        (setf j 0)
+	(setf node (extract-state node))
+   	(dolist (x *openlist*)
+		(setf x (extract-state x))      ;; extract state of x which starts from 
+										;; index 3 of a list
+		(setf j (+ j 1))
+		(if (not (null (eqstate node x))) (progn (setf temp1 't) (setf *index* j )))) temp1)
+
+(defun extract-state (node)             ;; Extract state of a node from a given list 
+	(setf temp nil)
+	(loop for i from 3 to 11 do (setf temp ( cons (elt node i) temp))) (reverse temp))
+
+(defun ndelete (state)          ;; deletes *current* present at *Index* i in *openlist* 
+	(setf ptemp nil)		    ;; ptemp will maintain lists except the one stored
+								;; at *Index*  					
+	(if (not (null (opencheck state))) 
+		(progn   
+		    (setf temp (copy-list *openlist*)) ;;copies openlist to temp so that change 
+											 ;;made in temp is not reflected in openlist       
+			(setf p (length temp))                   ;; p is length of list 'temp'
+			(loop for k from 0 to (- *index* 2) do   ;; get and store lists from 0 to Index-1
+				(setf ptemp (cons (car temp) ptemp))
+				(setf temp (rest temp)))
+			(setf temp (rest temp))
+			(loop for k from *index* to (- p 1) do	 ;; Loop to store get lists from Index +1
+													 ;;	to Length (*openlist*)
+				(setf r (car temp))
+				(setf temp (rest temp))
+				(setf ptemp (cons r ptemp))) 
+			(setf *openlist* (copy-list ptemp)))) *openlist*)
+
+(defun is-goal-state(node)				      ;; returns true if state of node is a goal state
+       (setf node (extract-state node))
+       (if (null (eqstate node *goal*)) nil 't))
+
+
+(defun isnot-openlist-empty()                ;; if openlist is empty then return true else false
+	(setf check (car *openlist*))
+        (setf temp nil)
+        (if (null check) nil (setf temp 't)) temp)
+    
+
+(defun calculate(state)                      ;; calculate heuristic as number of displaced tiles.
+	(do						     
+		((sum 0) 
+	         (i 0 (+ i 1)))
+		 ((> i 8) (- 9 sum))              
+	         (setf x (elt state i)) 
+	         (setf y (elt *goal* i))
+	         (if (equal x y) (setf sum (+ sum 1)))))
+
+(defun next(position)                        ;; (X,Y) of space (E) in the given problem;
+	(setf row (floor( / position 3)))
+        (setf col (mod position 3))
+	(list row col))
+
+
+(defun nextnodes(Istate x y)  ;; generates all possible child node from *current*'s position (x,y)	
+	(setf *childlist* nil)
+        (if ( eq x 2)
+		( progn
+			(if (eq y 0)
+				( progn
+                                (setf temp (copy-list Istate))
+                        		(setf *childlist* (cons (rightmove temp x y) *childlist*))))
+										
+            (if (eq y 1)
+				( progn
+								(setf temp (copy-list Istate))
+								(setf *childlist* (cons (rightmove temp x y) *childlist*))
+								(setf temp (copy-list Istate))
+								(setf *childlist* (cons (leftmove temp x y) *childlist*))))
+                                        				
+			(if (eq y 2)
+				( progn 
+								(setf temp (copy-list Istate))
+								(setf *childlist* (cons (leftmove temp x y) *childlist*))))
+
+			(setf temp (copy-list Istate))
+			(setf *childlist* (cons (upmove temp x y) *childlist*))	
+			(setf temp (copy-list Istate))	
+			(setf *childlist* (cons (downmove temp x y) *childlist*)))) 
+
+	(if ( eq x 1)
+		( progn
+			(if (eq y 0)
+				( progn
+                                (setf temp (copy-list Istate))
+                        		(setf *childlist* (cons (rightmove temp x y) *childlist*))))
+									
+            (if (eq y 1)
+				( progn
+                                (setf temp (copy-list Istate))
+								(setf *childlist* (cons (rightmove temp x y) *childlist*))
+								(setf temp (copy-list Istate))
+                                (setf *childlist* (cons (leftmove temp x y) *childlist*))))
+                                        				
+			(if (eq y 2)
+				( progn 
+								(setf temp (copy-list Istate))
+                        		(setf *childlist* (cons (leftmove temp x y) *childlist*))))
+			(setf temp (copy-list Istate))	
+			(setf *childlist* (cons (downmove temp x y) *childlist*)))) 
+			
+	(if ( eq x 3)
+		( progn
+			(if (eq y 0)
+				( progn
+                                (setf temp (copy-list Istate))
+                        		(setf *childlist* (cons (rightmove temp x y) *childlist*))))
+	        (if (eq y 1)
+				( progn
+                                (setf temp (copy-list Istate))
+								(setf *childlist* (cons (rightmove temp x y) *childlist*))
+								(setf temp (copy-list Istate))
+                                (setf *childlist* (cons (leftmove temp x y) *childlist*))))
+			(if (eq y 2)
+				( progn 
+								(setf temp (copy-list Istate))
+                        		(setf *childlist* (cons (leftmove temp x y) *childlist*))))
+
+			(setf temp (copy-list Istate))
+            (setf *childlist* (cons (upmove temp x y) *childlist*)))) *childlist*)	
+
+(defun space-pos(node)                 ;; returns position (*zero*) of E in 8 puzzle
+ 	(setf pos 0)
+ 	(dolist (x node) 
+		    (if (eq x 'E)
+                         (setf *zero* pos))
+                    (setf pos (+ pos 1 ))) *zero*)
+
+(defun rightmove (state x y)  ;; generate state by moving right from current position (x,y)    
+	(setf temp1 (elt state (+ (* x 3) y)))
+	(setf temp2 (elt state (+ (* x 3) (+ y 1))))
+        (setf (elt state (+ (* x 3) y)) temp2)
+	(setf (elt state (+ (* x 3) (+ y 1))) temp1)state)
+
+(defun leftmove (state x y)   ;; generate state by moving left from current position (x,y) 
+	(setf temp1 (elt state (+ (* x 3) y)))
+	(setf temp2 (elt state (+ (* x 3) (- y 1))))
+        (setf (elt state (+ (* x 3) y)) temp2)
+	(setf (elt state (+ (* x 3) (- y 1))) temp1)state)
+
+(defun upmove (state x y)	  ;; generate state by moving up from current position (x,y) 
+	(setf temp1 (elt state (+ (* (- x 1) 3) y)))
+	(setf temp2 (elt state (+ (* x 3) y )))
+        (setf (elt state (+ (* x 3) y)) temp1)
+	(setf (elt state (+ (* (- x 1) 3) y)) temp2)state)
+
+(defun downmove (state x y)	  ;; generate state by moving down from current position (x,y) 
+	(setf temp1 (elt state (+ (* (+ x 1) 3) y)))
+	(setf temp2 (elt state (+ (* x 3) y )))
+        (setf (elt state (+ (* x 3) y)) temp1)
+	(setf (elt state (+ (* (+ x 1) 3) y)) temp2)state)
+
+(defun closecheck (node)      ;; returns true if node is present in *closelist*
+	(setf temp1 nil) 
+        (setf node (extract-state node))
+	(dolist (x *closelist*)
+		(setf x (extract-state x))
+		(if (not (null (eqstate node x))) (setf temp1 't))) temp1)
+
+		;; calculates f,g and h value of *current*'s child and add it to state of *current* node 
+(defun fvalue (start)      
+        (setf g (elt start 1))         ;; gets 'g' for *current* node and add 1 to get child's 'g'. 
+									   ;; Assumed 1 move cost is 1.
+        (setf temp (space-pos start))  ;; Index of space in puzzle
+        (setf co-ordinate (next temp)) ;; 'next' co-ordinate correspond to space position in puzzle 
+        (setf x (elt co-ordinate 0))
+	(setf y (elt co-ordinate 1))
+        (setf child (nextnodes start x y)) ;; child node of *current* with space position (x, y)
+        (dolist (child-state child)                            
+		(setf temp (extract-state child-state))         
+		(setf h (calculate temp))          ;; calculate heuristic, g and f values of child-state 
+										   ;; and apend them at position 2, 1 and 0 respectively  
+										   ;; of alist of newly generated child node
+		(setf (elt child-state 2) h)      
+        (setf (elt child-state 1) (+ g 1))
+        (setf (elt child-state 0) (+ (+ g 1) h))
+		(if ( null (closecheck child-state)) ;; Insert child of *current* in openlist,
+											 ;; if child not present in closelist
+                   (progn (setf *openlist* (cons child-state *openlist*)))))) 
+ 
+(defun priorty-queue()				     ;; returns that state which had minimum fvalue.
+	(setf min 10000)
+        (setf state nil)
+	(dolist (x *openlist*)
+		(setf f (elt x 0))               ;; extract fvalue from list x stored in *openlist* 
+		( if (< f min)
+			(progn (setf min f) (setf state x)))) state)
+
+
+;;;;;;feasible solution;;;;;;;;;;;;;;;;;;;
+
+;; We calculate total sum. If sum is odd then infeasible solution else feasible.
+;; Calculate and sum total number of integers in puzzle from i+1 to 9, which are 
+;; less than element at i where i is from 1 to 9. We skip calculation on getting E 
+
+(defun compare (ele next-list)    
+	(if (null next-list) 
+                (+ 0)
+		(progn	
+			(if (equal (car next-list) 'E)
+				(compare ele (cdr next-list))
+				(progn 			
+					(if (> ele (car next-list)) 
+						(+ 1 ( compare ele  (cdr next-list)))
+				        (compare ele (cdr next-list))))))))
+		
+(defun feasible (pass-state sum)
+	(if (null pass-state)
+		(if (evenp sum) 't nil)
+                (progn
+			(if (equal (car pass-state) 'E) (feasible (cdr pass-state) sum)
+				(progn
+					(setf sum ( + sum (compare (car pass-state) (cdr pass-state) ) ) )
+					(feasible (cdr pass-state) sum)))))) 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun asearch(start)								   ;; Main function.
+	(setf *goal* nil)
+	(setf *openlist* nil)
+	(setf *closelist* nil)
+	(setf *mov* 0)
+        (setf *current* nil)
+	(setf *goal* '(1 2 3 4 5 6 7 8 E))
+        (setf copy (copy-list start))
+        (if (null (feasible copy 0))
+			(progn
+				(print 'solution-infeasible)
+				(return-from asearch 'end)))
+	(setf start-g 0)                              ;; assuming path cost (g) is always +ive
+	(setf start-h (calculate start))              ;; Heuristic (h) is Number of displaced tiles
+	(setf start (cons start-h start)) 
+	(setf start (cons start-g start))
+       
+	(setf start (cons (+ start-g start-h) start)) ;; f = g + h     
+	(setf *openlist* (cons start *openlist*))     ;; added *current* node to openlist
+	(setf *current* start) 
+        (loop while (not (null (isnot-openlist-empty))) do
+	     	(if (is-goal-state *current*) 
+				( progn (print '*current*)
+					(print *current*)(setf *closelist* (cons *current* *closelist*))
+					(format t "~%~%~%**********************FINAL*********************")
+					(format t "~%Total Nodes expanded- ~A~%" *mov*)
+					(setf *closelist* (reverse *closelist*))
+					(format t "Nodes from start to Goal state")
+					(print *closelist*)
+					(setf total (length *openlist*))
+					(format t "~% ~%*********Nodes in priorty queue which were still to be expanded**********~%")
+					(print *openlist*)
+					(format t "~% ~%********************Generated nodes******************~%")
+					(print (append *openlist* (cdr *closelist*)))
+					(format t "~%Total number of generated nodes ~A ~% " (+  *mov* total))
+					(return-from asearch 'end)))
+		(setf *mov* (+ *mov* 1))		               ;; counter to keep track of expanded nodes
+		(print'mov-uptil-now) (print *mov*)
+		(setf *openlist* (reverse (ndelete *current*)));;delete *current* from open & add to close list
+		(setf *closelist* (cons *current* *closelist*))
+;; calculate fvalue of *current*'s child nodes by generating them
+		(fvalue *current*)	      
+;; Using priorty queue assign *current* in such a way that fvalue is minimum 
+		(setf *current* (priorty-queue))               
+        (print 'next-node-choosen) (print *current*)) 'end)
