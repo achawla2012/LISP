@@ -1,5 +1,5 @@
-; Amardeep singh
-; CS5211 Artificial Intelligence
+;; Author: Amardeep singh
+;; Course: CS5211 Artificial Intelligence
 
 (defstruct nodes state precussor depth)  ;; Node structure having details about its state, 
   									 ;; depth in a problem from initial state and its
