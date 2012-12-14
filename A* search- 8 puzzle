@@ -1,5 +1,5 @@
-; Amardeep singh
-; CS5211 Artificial Intelligence
+;; Author:   Amardeep singh
+;; Course:   CS5211 Artificial Intelligence
 
 
 (defvar *goal*)            ;; *goal* is a goal-state to acquire 
